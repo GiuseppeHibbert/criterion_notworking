@@ -1,0 +1,89 @@
+#!/bin/bash
+
+VERSION=1.0
+CC=
+EXE=
+MAKEFILE=
+OBJECTS=
+echo ">> Launching Make Make(b$VERSION)..."
+
+
+# These test statements will see how many command-line arguments were provided and read input from user if not provided.
+if [ $# -le 0 ]; then
+        echo "Enter a compiler to use."
+        read CC
+        echo ">> You provided $CC compiler."
+else
+	CC=$1
+	echo ">> Using $CC Compiler."
+fi
+
+if [ $# -le 1 ]; then
+        echo "Enter an executable to use, please enter without the ".c"."
+        read EXE
+        echo ">> You provided $EXE as the executable."
+else
+	EXE=$2
+	echo ">> Using $EXE as the executable."
+fi
+
+if [ $# -le 2 ]; then
+        echo "Enter the name of the makefile to create."
+        read MAKEFILE
+        echo ">> You provided $MAKEFILE as the name of the Makefile."
+  	touch $MAKEFILE
+else
+	MAKEFILE=$3
+	echo ">> Using $MAKEFILE as the Makefile."
+	touch $MAKEFILE
+fi
+
+
+# Now creating the Makefile after getting command-line arguments from the above script.
+echo "# This Makefile was created automatically by the makeMake script, version $VERSION, on $(date)" > $MAKEFILE
+echo -e "\n# Variables used by makefile\n" >> $MAKEFILE
+
+
+# Writing Variables to the Makefile
+echo "CC=${CC}" >> $MAKEFILE
+echo "CFLAGS=-Wall -std=c11" >> $MAKEFILE
+echo "EXE=$EXE" >> $MAKEFILE 
+
+
+# Using a for loop to grab the contents of the local directory, and assigns the OBJECTS variable.
+# In this for loop, notice the syntax surrounding sourcefile, this makes use of wildcards to convert the sourcefile into the correct form in the Makefile itself.
+for sourcefile in $(ls *.c)		  
+do
+    if [ ${sourcefile%.c} != $EXE ]; then
+	OBJECTS="${sourcefile%.c}.o $OBJECTS"
+    fi
+done
+
+
+# Writing Objects variable to the Makefile
+echo "OBJECTS=$OBJECTS" >> $MAKEFILE
+# newline for clarity
+echo -e "" >> $MAKEFILE
+
+
+# We will now create the target and recipe for each object file.
+# Makes handy use of the command :  gcc -MM <file.c>
+echo -e "\n# Recipes used by makefile\n" >> $MAKEFILE
+for sourcefile in $(ls *.c)		  
+do  
+    if [ ${sourcefile%.c} != $EXE ]; then
+	echo $(gcc -MM ${sourcefile}) >> $MAKEFILE
+	echo -e "\t\$(CC) \$(CFLAGS) -c ${sourcefile}\n" >> $MAKEFILE
+    else # Else, if it is the executable, create it seperately. 
+	echo "${EXE}: \$(OBJECTS)" >> $MAKEFILE
+	echo -e "\t\$(CC) -o \$(EXE) \$(OBJECTS) \$(EXE).c" >> $MAKEFILE
+    fi
+done
+
+
+# PHONY targets
+echo -e "\n# PHONY targets\n" >> $MAKEFILE
+echo -e "PHONY: clean" >> $MAKEFILE
+echo -e "clean:	" >> $MAKEFILE
+echo -e "\trm -rf *~ \$(OBJECTS) \$(EXE)" >> $MAKEFILE
+echo "# End of Makefile" >> $MAKEFILE
